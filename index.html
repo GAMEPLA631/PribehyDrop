@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generátor a Správca Príbehov</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
+    <!-- Pridanie Font Awesome pre ikony -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/js/all.min.js"></script>
+    <style>
+        /* Celkový svetlý, čistý štýl */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f9fc; /* Veľmi svetlé pozadie */
+            color: #1f2937; /* Tmavý text */
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 900px;
+        }
+        /* Štýl pre svetlé posuvníky */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #e5e7eb;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #9ca3af;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
+        }
+        /* Zabezpečí, že dlhý text sa zalomí a zachová odseky */
+        .story-content {
+            white-space: pre-wrap;
+            line-height: 1.6;
+            text-align: justify;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-10 bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+            <h1 class="text-4xl font-extrabold text-blue-600 mb-2">Generátor Príbehov a Archív</h1>
+            <p class="text-gray-600">Tvoj osobný priestor pre tvorbu a ukladanie príbehov.</p>
+            <div id="user-info" class="text-xs mt-4 p-2 bg-blue-50/50 rounded-lg shadow-inner text-gray-700 border border-blue-100">
+                Stav ukladania: <span class="text-blue-600 font-semibold">Local Storage</span> (uložené len v tomto prehliadači).
+            </div>
+        </header>
+
+        <!-- Navigácia pre sekcie -->
+        <nav class="flex justify-center mb-6 space-x-4">
+            <!-- Aktívna záložka v JS dostane bg-white a border-b-2 -->
+            <button id="tab-manager" class="tab-button px-4 py-3 text-base font-semibold rounded-t-lg transition-colors duration-200 text-blue-600 border-b-2 border-blue-600 bg-white shadow-lg">
+                Správca Mojich Príbehov
+            </button>
+            <button id="tab-ai-chat" class="tab-button px-4 py-3 text-base font-medium rounded-t-lg transition-colors duration-200 text-gray-600 hover:text-blue-600 hover:border-b-2 hover:border-blue-300">
+                AI Asistent (Generátor)
+            </button>
+        </nav>
+
+        <!-- Správca Príbehov (Archív) -->
+        <div id="story-manager" class="space-y-8 p-6 bg-white rounded-xl shadow-2xl transition-opacity duration-300 border border-gray-200">
+            <h2 class="text-2xl font-bold border-b border-gray-200 pb-3 text-blue-600">Uložiť Nový Príbeh</h2>
+            
+            <div class="space-y-4">
+                <input type="text" id="new-story-title" placeholder="Názov príbehu (povinné)" class="w-full p-3 rounded-lg bg-gray-50 border border-gray-300 text-gray-800 focus:ring-blue-500 focus:border-blue-500 shadow-sm">
+                <textarea id="new-story-content" rows="10" placeholder="Napíš svoj vlastný príbeh sem..." class="w-full p-3 rounded-lg bg-gray-50 border border-gray-300 text-gray-800 focus:ring-blue-500 focus:border-blue-500 shadow-sm"></textarea>
+                <button id="save-story-btn" class="w-full py-3 bg-green-500 hover:bg-green-600 text-white font-bold rounded-lg transition duration-200 shadow-md transform hover:scale-[1.005] active:scale-100">
+                    <i class="fas fa-save mr-2"></i> Uložiť Príbeh
+                </button>
+            </div>
+
+            <h2 class="text-2xl font-bold border-b border-gray-200 pb-3 text-blue-600 mt-10">Tvoj Archív Príbehov (Local Storage)</h2>
+            <div id="stories-list" class="space-y-4">
+                <p class="text-gray-500 text-center">Načítavam príbehy...</p>
+            </div>
+        </div>
+
+        <!-- AI Asistent (Chat) -->
+        <div id="ai-chat" class="hidden space-y-8 p-6 bg-white rounded-xl shadow-2xl transition-opacity duration-300 border border-gray-200">
+            <h2 class="text-2xl font-bold border-b border-gray-200 pb-3 text-blue-600">AI Asistent: Generátor Príbehov</h2>
+            <p class="text-gray-600">Napíš, aký príbeh chceš. Pre dlhé a strašné príbehy použi v požiadavke slovo "dlhý" alebo "rozsiahly".</p>
+
+            <div class="space-y-4">
+                <textarea id="ai-prompt" rows="3" placeholder="Tvoja požiadavka pre AI..." class="w-full p-3 rounded-lg bg-gray-50 border border-gray-300 text-gray-800 focus:ring-red-500 focus:border-red-500 shadow-sm"></textarea>
+                <button id="generate-story-btn" class="w-full py-3 bg-red-500 hover:bg-red-600 text-white font-bold rounded-lg transition duration-200 shadow-md transform hover:scale-[1.005] active:scale-100">
+                    Generovať Príbeh
+                </button>
+                <div id="ai-loading" class="hidden text-center p-4 bg-yellow-100 border border-yellow-300 rounded-lg text-yellow-800 font-semibold animate-pulse">
+                    <i class="fas fa-spinner fa-spin mr-2"></i> AI generuje odpoveď, čakaj prosím...
+                </div>
+            </div>
+
+            <div id="ai-story-output" class="p-4 bg-gray-50 rounded-lg border border-gray-300 shadow-inner min-h-[150px] story-content text-gray-800">
+                <p class="text-gray-500">Vygenerovaný príbeh sa zobrazí tu.</p>
+            </div>
+            <div id="ai-actions" class="flex justify-end space-x-3 mt-4 hidden">
+                <button id="tts-ai-btn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200 text-sm shadow-md">
+                    <i class="fas fa-volume-up mr-2"></i> Prečítať Nahlas
+                </button>
+                <button id="copy-ai-btn" class="px-4 py-2 bg-gray-300 hover:bg-gray-400 text-gray-800 rounded-lg transition duration-200 text-sm shadow-md">
+                    <i class="fas fa-copy mr-2"></i> Skopírovať
+                </button>
+            </div>
+            
+            <div id="ai-sources" class="mt-4 p-3 text-xs bg-gray-100/50 rounded-lg border border-gray-200 hidden">
+                <h4 class="font-semibold text-blue-600 mb-1">Zdroje:</h4>
+                <ul id="ai-sources-list" class="list-disc pl-5 space-y-1 text-gray-600">
+                    <!-- Zdroje sa vložia sem -->
+                </ul>
+            </div>
+        </div>
+
+        <!-- Všeobecná oblasť pre správy/chyby (nahradí alerty) -->
+        <div id="message-box" class="fixed bottom-4 right-4 p-4 bg-green-500 text-white rounded-lg shadow-xl font-medium hidden z-50 transition-transform duration-300 transform translate-x-full">
+        </div>
+
+    </div>
+
+    <!-- Firebase SDKs boli odstránené. Používame len Local Storage. -->
+    <script type="module">
+        // --- Konštanty pre Local Storage ---
+        const LOCAL_STORAGE_KEY = 'storyArchive';
+        
+        // --- UI Elementy ---
+        const storyManagerDiv = document.getElementById('story-manager');
+        const aiChatDiv = document.getElementById('ai-chat');
+        const tabManager = document.getElementById('tab-manager');
+        const tabAiChat = document.getElementById('tab-ai-chat');
+        const userInfoDiv = document.getElementById('user-info');
+        const storiesListDiv = document.getElementById('stories-list');
+        const newStoryTitleInput = document.getElementById('new-story-title');
+        const newStoryContentTextarea = document.getElementById('new-story-content');
+        const saveStoryBtn = document.getElementById('save-story-btn');
+        const aiPromptTextarea = document.getElementById('ai-prompt');
+        const generateStoryBtn = document.getElementById('generate-story-btn');
+        const aiLoadingDiv = document.getElementById('ai-loading');
+        const aiStoryOutputDiv = document.getElementById('ai-story-output');
+        const aiActionsDiv = document.getElementById('ai-actions');
+        const ttsAiBtn = document.getElementById('tts-ai-btn');
+        const copyAiBtn = document.getElementById('copy-ai-btn');
+        const aiSourcesDiv = document.getElementById('ai-sources');
+        const aiSourcesList = document.getElementById('ai-sources-list');
+        const messageBox = document.getElementById('message-box');
+
+        // --- Utility pre UI ---
+
+        /** Zobrazí dočasnú správu namiesto alertu. */
+        function showMessage(text, isError = false) {
+            messageBox.textContent = text;
+            messageBox.className = `fixed bottom-4 right-4 p-4 rounded-lg shadow-xl font-medium z-50 transition-transform duration-300 transform translate-x-0 ${isError ? 'bg-red-500 text-white' : 'bg-green-500 text-white'}`;
+            messageBox.classList.remove('hidden');
+            setTimeout(() => {
+                messageBox.classList.add('translate-x-full');
+                // Po animácii skryjeme
+                setTimeout(() => messageBox.classList.add('hidden'), 300);
+            }, 3000);
+        }
+
+        /** Prepinanie medzi sekciami */
+        function switchTab(activeTab) {
+            // Resetuj všetky tlačidlá na neaktívny stav
+            tabManager.className = 'tab-button px-4 py-3 text-base font-medium rounded-t-lg transition-colors duration-200 text-gray-600 hover:text-blue-600 hover:border-b-2 hover:border-blue-300';
+            tabAiChat.className = 'tab-button px-4 py-3 text-base font-medium rounded-t-lg transition-colors duration-200 text-gray-600 hover:text-blue-600 hover:border-b-2 hover:border-blue-300';
+            
+            if (activeTab === 'manager') {
+                storyManagerDiv.classList.remove('hidden');
+                aiChatDiv.classList.add('hidden');
+                // Nastav aktívny štýl
+                tabManager.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'bg-white', 'shadow-lg', 'font-semibold');
+                tabManager.classList.remove('font-medium', 'hover:border-blue-300');
+            } else {
+                aiChatDiv.classList.remove('hidden');
+                storyManagerDiv.classList.add('hidden');
+                // Nastav aktívny štýl
+                tabAiChat.classList.add('text-blue-600', 'border-b-2', 'border-blue-600', 'bg-white', 'shadow-lg', 'font-semibold');
+                tabAiChat.classList.remove('font-medium', 'hover:border-blue-300');
+            }
+        }
+        tabManager.addEventListener('click', () => switchTab('manager'));
+        tabAiChat.addEventListener('click', () => switchTab('ai-chat'));
+        switchTab('manager'); // Nastav predvolenú záložku
+        
+        // --- Text-to-Speech (TTS) Funkcia (Vstavané v prehliadači) ---
+        /** Prečíta zadaný text s preferenciou slovenčiny. */
+        function speakText(text) {
+            if ('speechSynthesis' in window) {
+                if (window.speechSynthesis.speaking) {
+                    window.speechSynthesis.cancel(); // Zastav predchádzajúce čítanie
+                }
+                const utterance = new SpeechSynthesisUtterance(text);
+                // Nastavenie preferovanej slovenčiny (sk-SK)
+                const voices = window.speechSynthesis.getVoices();
+                const skVoice = voices.find(voice => voice.lang.startsWith('sk'));
+                
+                if (skVoice) {
+                    utterance.voice = skVoice;
+                }
+                utterance.lang = 'sk-SK'; // Explicitne nastav jazyk
+
+                window.speechSynthesis.speak(utterance);
+                showMessage("Prehrávam text...");
+            } else {
+                showMessage('Text-to-Speech API nie je podporované v tomto prehliadači.', true);
+            }
+        }
+
+        // --- Local Storage Funkcie pre Správcu Príbehov ---
+
+        /** Načíta príbehy z Local Storage. */
+        function loadStoriesFromLocalStorage() {
+            try {
+                const storiesJson = localStorage.getItem(LOCAL_STORAGE_KEY);
+                return storiesJson ? JSON.parse(storiesJson) : [];
+            } catch (e) {
+                console.error("Chyba pri načítaní z Local Storage: ", e);
+                return [];
+            }
+        }
+
+        /** Uloží príbehy do Local Storage. */
+        function saveStoriesToLocalStorage(stories) {
+            try {
+                localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(stories));
+            } catch (e) {
+                console.error("Chyba pri ukladaní do Local Storage: ", e);
+                showMessage("Chyba: Nepodarilo sa uložiť príbehy do Local Storage.", true);
+            }
+        }
+
+        /** Uloží nový príbeh. */
+        saveStoryBtn.addEventListener('click', async () => {
+            const title = newStoryTitleInput.value.trim();
+            const content = newStoryContentTextarea.value.trim();
+
+            if (!title) {
+                showMessage("Prosím, zadaj názov príbehu!", true);
+                return;
+            }
+
+            saveStoryBtn.disabled = true;
+            saveStoryBtn.textContent = 'Ukladám...';
+            
+            try {
+                const stories = loadStoriesFromLocalStorage();
+                const newStory = {
+                    // Použitie náhodného UUID pre unikátne ID
+                    id: crypto.randomUUID(), 
+                    title: title,
+                    content: content || 'Bez obsahu.',
+                    createdAt: new Date().toISOString(), // Uložíme čas ako reťazec
+                };
+                
+                stories.push(newStory);
+                saveStoriesToLocalStorage(stories);
+                
+                showMessage(`Príbeh '${title}' bol úspešne uložený lokálne!`);
+                newStoryTitleInput.value = '';
+                newStoryContentTextarea.value = '';
+                
+                loadStories(); // Načíta a zobrazí aktualizovaný zoznam
+            } catch (e) {
+                console.error("Chyba pri pridávaní príbehu: ", e);
+                showMessage("Nastala chyba pri ukladaní príbehu.", true);
+            } finally {
+                saveStoryBtn.disabled = false;
+                saveStoryBtn.innerHTML = '<i class="fas fa-save mr-2"></i> Uložiť Príbeh';
+            }
+        });
+
+        /** Načíta a zobrazí príbehy z Local Storage. */
+        function loadStories() {
+            storiesListDiv.innerHTML = '';
+            
+            const stories = loadStoriesFromLocalStorage();
+
+            if (stories.length === 0) {
+                storiesListDiv.innerHTML = '<p class="text-gray-500 text-center p-4">Zatiaľ nemáš žiadne uložené príbehy v tomto prehliadači.</p>';
+                return;
+            }
+
+            // Zoraď príbehy od najnovších (na základe reťazca ISO 8601)
+            stories.sort((a, b) => (b.createdAt || '') > (a.createdAt || '') ? 1 : -1);
+
+            stories.forEach(story => {
+                const storyCard = document.createElement('div');
+                storyCard.id = `story-${story.id}`;
+                // Aktualizované triedy pre svetlú tému
+                storyCard.className = 'bg-gray-50 p-4 rounded-lg border border-gray-200 shadow-md space-y-3';
+                
+                const dateString = story.createdAt ? new Date(story.createdAt).toLocaleDateString('sk-SK') : 'Neznámy dátum';
+
+                storyCard.innerHTML = `
+                    <h3 class="text-xl font-semibold text-blue-600 border-b border-gray-200/50 pb-2">${story.title}</h3>
+                    <p class="text-sm text-gray-500 italic">Uložené: ${dateString}</p>
+                    <div class="story-content text-gray-700">${story.content}</div>
+                    <div class="flex justify-end space-x-2 pt-2">
+                        <button data-id="${story.id}" data-content="${story.content.replace(/"/g, '&quot;')}" class="tts-story-btn px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition duration-200 text-sm shadow-sm">
+                            <i class="fas fa-volume-up"></i>
+                        </button>
+                        <button data-id="${story.id}" class="delete-story-btn px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded-lg transition duration-200 text-sm font-medium shadow-sm">
+                            <i class="fas fa-trash-alt"></i> Zmazať
+                        </button>
+                    </div>
+                `;
+                storiesListDiv.appendChild(storyCard);
+            });
+
+            // Pridanie listenerov na dynamicky vytvorené tlačidlá
+            storiesListDiv.querySelectorAll('.delete-story-btn').forEach(btn => {
+                btn.addEventListener('click', handleDeleteStory);
+            });
+            storiesListDiv.querySelectorAll('.tts-story-btn').forEach(btn => {
+                btn.addEventListener('click', handleTTSStory);
+            });
+        }
+
+        /** Handler pre zmazanie príbehu. */
+        async function handleDeleteStory(event) {
+            const storyId = event.currentTarget.getAttribute('data-id');
+            
+            // Používam confirm len na demonštráciu. V reálnej app by som použil custom modal.
+            if (window.confirm("Naozaj chceš tento príbeh natrvalo zmazať z Local Storage?")) { 
+                try {
+                    let stories = loadStoriesFromLocalStorage();
+                    // Filtrujeme príbeh, ktorý chceme zmazať
+                    const updatedStories = stories.filter(story => story.id !== storyId);
+                    
+                    if (stories.length !== updatedStories.length) {
+                        saveStoriesToLocalStorage(updatedStories);
+                        showMessage("Príbeh bol úspešne zmazaný.");
+                        loadStories(); // Načíta a zobrazí aktualizovaný zoznam
+                    } else {
+                         showMessage("Chyba: Príbeh sa nenašiel.", true);
+                    }
+
+                } catch (e) {
+                    console.error("Chyba pri mazaní príbehu: ", e);
+                    showMessage("Nastala chyba pri mazaní príbehu.", true);
+                }
+            }
+        }
+        
+        /** Handler pre čítanie uloženého príbehu. */
+        function handleTTSStory(event) {
+            // Používame textContent, aby sme získali obsah z DOM, ktorý už bol sanitanizovaný
+            const storyCard = event.currentTarget.closest('.bg-gray-50');
+            const contentElement = storyCard ? storyCard.querySelector('.story-content') : null;
+            
+            if (contentElement) {
+                const text = contentElement.textContent.trim();
+                speakText(text);
+            }
+        }
+        
+        // Načítaj príbehy pri spustení
+        window.addEventListener('load', loadStories);
+
+
+        // --- AI Generátor Príbehov (Gemini API) ---
+
+        const apiKey = "AIzaSyD3mxzbdINvR0WMBXqBhQpp5kkihcXtRTY"; // API kľúč je automaticky poskytnutý v Canvas prostredí
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        /** Generuje príbeh pomocou Gemini API s exponenciálnym backoffom. */
+        async function generateStory(prompt, maxRetries = 5) {
+            aiLoadingDiv.classList.remove('hidden');
+            generateStoryBtn.disabled = true;
+            aiStoryOutputDiv.innerHTML = '<p class="text-gray-500 text-center">Generujem...</p>';
+            aiActionsDiv.classList.add('hidden');
+            aiSourcesDiv.classList.add('hidden');
+            
+            // UPRAVENÁ SYSTÉMOVÁ INŠTRUKCIA PRE DLHÉ A STRAŠIDELNÉ TEXTY
+            const systemPrompt = "Si kreatívny asistent, ktorý generuje extrémne pútavé, hlboko detailné a rozsiahle príbehy v slovenčine. Reaguj vždy priamo príbehom bez zbytočných úvodov. Ak požiadavka obsahuje slovo 'dlhý' alebo 'rozsiahly', vygeneruj text s minimálne 500 slovami (približne 1.5 - 2 A4 strany). Ak je požiadavka na strašidelný príbeh, urob ho čo najviac strašidelný, mrazivý a plný atmosférického napätia, s detailnými opismi hrôzy a psychologických stavov.";
+            
+            const payload = {
+                contents: [{ parts: [{ text: prompt }] }],
+                // Povolenie Google Search grounding, aby AI mohla čerpať z reálnych informácií pre príbehy (napr. fakty o miestach)
+                tools: [{ "google_search": {} }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+            };
+
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 429 && attempt < maxRetries - 1) {
+                        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue; // Opakuj pokus
+                    }
+                    if (!response.ok) {
+                        throw new Error(`Chyba API: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    const candidate = result.candidates?.[0];
+
+                    if (candidate && candidate.content?.parts?.[0]?.text) {
+                        const text = candidate.content.parts[0].text;
+                        let sources = [];
+                        const groundingMetadata = candidate.groundingMetadata;
+                        
+                        if (groundingMetadata && groundingMetadata.groundingAttributions) {
+                            sources = groundingMetadata.groundingAttributions
+                                .map(attribution => ({
+                                    uri: attribution.web?.uri,
+                                    title: attribution.web?.title,
+                                }))
+                                .filter(source => source.uri && source.title);
+                        }
+
+                        displayAiStory(text, sources);
+                        return; // Úspech
+                    } else {
+                        throw new Error("Odpoveď AI je prázdna alebo neštruktúrovaná.");
+                    }
+
+                } catch (error) {
+                    console.error(`Pokus ${attempt + 1} zlyhal: `, error);
+                    if (attempt === maxRetries - 1) {
+                         showMessage(`Nastala chyba pri generovaní príbehu: ${error.message}`, true);
+                         displayAiStory(`Nastala chyba pri generovaní príbehu. Skúste to prosím znova: ${error.message}`, []);
+                    }
+                }
+            }
+            // Zabezpečenie, že UI je resetované aj po všetkých zlyhaných pokusoch
+             aiLoadingDiv.classList.add('hidden');
+             generateStoryBtn.disabled = false;
+        }
+
+        /** Zobrazí vygenerovaný príbeh a zdroje. */
+        function displayAiStory(text, sources) {
+            aiLoadingDiv.classList.add('hidden');
+            generateStoryBtn.disabled = false;
+
+            // Nahraď Markdown odseky za HTML odseky (pre lepšie formátovanie)
+            const formattedText = text
+                .split('\n\n')
+                .map(p => p.trim())
+                .filter(p => p.length > 0)
+                .join('</p><p class="mb-3">')
+                .replace(/^/, '<p>')
+                .replace(/$/, '</p>');
+
+            aiStoryOutputDiv.innerHTML = `<div class="story-content text-gray-800">${formattedText}</div>`;
+            aiActionsDiv.classList.remove('hidden');
+
+            // Zdroje
+            aiSourcesList.innerHTML = '';
+            if (sources && sources.length > 0) {
+                aiSourcesDiv.classList.remove('hidden');
+                sources.forEach(source => {
+                    const li = document.createElement('li');
+                    li.className = 'text-gray-600';
+                    li.innerHTML = `<a href="${source.uri}" target="_blank" class="text-blue-600 hover:text-blue-500 transition-colors">${source.title || 'Odkaz bez názvu'}</a>`;
+                    aiSourcesList.appendChild(li);
+                });
+            } else {
+                aiSourcesDiv.classList.add('hidden');
+            }
+        }
+
+        // --- Listenery pre AI sekciu ---
+        
+        generateStoryBtn.addEventListener('click', () => {
+            const prompt = aiPromptTextarea.value.trim();
+            if (prompt) {
+                generateStory(prompt);
+            } else {
+                showMessage("Prosím, zadaj požiadavku pre AI asistenta.", true);
+            }
+        });
+
+        ttsAiBtn.addEventListener('click', () => {
+            const text = aiStoryOutputDiv.textContent.trim();
+            if (text && text !== "Vygenerovaný príbeh sa zobrazí tu." && text !== "Generujem...") {
+                speakText(text);
+            } else {
+                showMessage("Najprv musíš vygenerovať príbeh!", true);
+            }
+        });
+
+        copyAiBtn.addEventListener('click', () => {
+            const text = aiStoryOutputDiv.textContent.trim();
+            if (text && text !== "Vygenerovaný príbeh sa zobrazí tu." && text !== "Generujem...") {
+                // Použitie staršej metódy pre kompatibilitu v iFrame
+                const tempInput = document.createElement('textarea');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                try {
+                    document.execCommand('copy');
+                    showMessage("Príbeh bol skopírovaný do schránky!");
+                } catch (err) {
+                    console.error('Nepodarilo sa skopírovať text: ', err);
+                    showMessage('Chyba pri kopírovaní do schránky.', true);
+                }
+                document.body.removeChild(tempInput);
+            } else {
+                showMessage("Najprv musíš vygenerovať príbeh!", true);
+            }
+        });
+
+        // Po načítaní všetkých hlasov (dôležité pre správne nastavenie sk-SK hlasu)
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                // Toto zabezpečí, že ak TTS funkcia bude volaná, bude mať prístup k zoznamu hlasov.
+                console.log("Hlasy TTS načítané.");
+            };
+        }
+
+
+    </script>
+</body>
+</html>
