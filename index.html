@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MojaSieť - Verejná Cloud Databáza</title>
+    <title>MojaSieť - Live Cloud</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -60,8 +60,8 @@
                 </div>
                 <div>
                     <h1 class="text-xl font-bold tracking-tight text-md-onSurface leading-none">MojaSieť</h1>
-                    <span class="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 mt-0.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Verejný Cloud Aktívny
+                    <span id="dbStatus" class="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 mt-0.5">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Globálny Cloud Pripojený
                     </span>
                 </div>
             </div>
@@ -88,7 +88,7 @@
         <div id="welcomeBanner" class="bg-gradient-to-r from-md-primaryContainer to-md-surfaceContainerHigh text-md-onPrimaryContainer rounded-3xl p-6 sm:p-8 mb-8 shadow-sm border border-white/60 flex flex-col sm:flex-row items-center justify-between gap-6">
             <div>
                 <h2 class="text-2xl font-bold tracking-tight mb-1">Vitajte na MojaSieť</h2>
-                <p class="text-sm text-md-onSurfaceVariant max-w-md">Všetky príspevky sa ukladajú online a sú verejné pre každého.</p>
+                <p class="text-sm text-md-onSurfaceVariant max-w-md">Všetky príspevky sú zosynchronizované online v reálnom čase pre všetky zariadenia.</p>
             </div>
             <button onclick="openAuthModal()" class="bg-md-primary text-white px-7 py-3 rounded-full font-semibold shadow-md whitespace-nowrap">
                 Prihlásiť sa
@@ -99,11 +99,11 @@
         <div id="createPostCard" class="hidden bg-md-surface rounded-3xl shadow-sm mb-8 border border-md-outlineVariant/30 p-5 sm:p-6">
             <div class="md-text-field mb-2">
                 <textarea id="postContentInput" rows="2" class="md-input resize-none" placeholder=" "></textarea>
-                <label class="md-label">Napíšte niečo na verejnú nástenku...</label>
+                <label class="md-label">Napíšte nový verejný príspevok...</label>
             </div>
             <div class="md-text-field mb-3">
                 <input type="url" id="postImageUrlInput" class="md-input" placeholder=" ">
-                <label class="md-label">URL obrázka (voliteľné)</label>
+                <label class="md-label">URL adresa obrázka (voliteľné)</label>
             </div>
             <div class="flex justify-end pt-2 border-t border-md-surfaceContainerHigh">
                 <button id="submitPostBtn" onclick="submitNewPost()" class="bg-md-primary text-white px-7 py-2.5 rounded-full font-semibold shadow-md flex items-center gap-2">
@@ -115,26 +115,26 @@
 
         <!-- Nástenka -->
         <div class="flex justify-between items-center px-2 mb-3">
-            <h2 class="text-lg font-bold">Najnovšie príspevky</h2>
-            <button onclick="loadPosts()" class="p-2 text-md-onSurfaceVariant hover:bg-md-surfaceContainerHigh rounded-full">
+            <h2 class="text-lg font-bold">Verejné príspevky</h2>
+            <button onclick="loadPosts()" class="p-2 text-md-onSurfaceVariant hover:bg-md-surfaceContainerHigh rounded-full transition-colors" title="Obnoviť">
                 <span class="material-symbols-outlined">refresh</span>
             </button>
         </div>
 
         <div id="loadingIndicator" class="text-center py-12 text-sm text-md-onSurfaceVariant">
             <div class="animate-spin rounded-full h-8 w-8 border-4 border-md-primary/20 border-t-md-primary mx-auto mb-2"></div>
-            Načítavam príspevky...
+            Načítavam príspevky zo siete...
         </div>
         
         <div id="postsList" class="space-y-4"></div>
         
         <div id="emptyState" class="hidden text-center py-12 bg-md-surface rounded-3xl border border-md-outlineVariant/30 p-6">
             <p class="font-bold">Zatiaľ tu nie sú žiadne príspevky.</p>
-            <p class="text-sm text-md-onSurfaceVariant mt-1">Prihláste sa a pridajte prvý príspevok.</p>
+            <p class="text-sm text-md-onSurfaceVariant mt-1">Prihláste sa s 5-miestnym PINom a pridajte prvý príspevok.</p>
         </div>
     </main>
 
-    <!-- Auth Modal (Meno + 5-miestny PIN) -->
+    <!-- Auth Modal (5-miestny PIN) -->
     <div id="authModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div class="bg-md-surface w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-xl">
             <div class="flex justify-between items-center mb-6">
@@ -164,32 +164,44 @@
     </div>
 
     <script>
-        // Verejný cloud endpoint pre tvoju sieť (BannaTube Network)
-        const CLOUD_API = "https://kvdb.io/8y4Yd9oE7Q8qXqQ4H8XqL1/bannatube_posts";
+        // TVOJ VLASTNÝ GLOBÁLNY CLOUD DATABASE ENDPOINT
+        const DB_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/posts.json";
 
         let currentUser = localStorage.getItem('mojasiet_user') || "";
         let posts = [];
 
+        /* 1. NAČÍTANIE PRÍSPEVKOV Z ONLINE DATABÁZY */
         async function loadPosts() {
             document.getElementById('loadingIndicator').classList.remove('hidden');
             document.getElementById('emptyState').classList.add('hidden');
             document.getElementById('postsList').innerHTML = '';
 
             try {
-                const res = await fetch(CLOUD_API);
+                const res = await fetch(DB_URL);
+                
+                if (res.status === 401 || res.status === 403) {
+                    showSnackbar("Chyba: Nastavte v Rules vo Firebase .read: true a .write: true");
+                    renderPosts();
+                    return;
+                }
+
                 if (res.ok) {
-                    posts = await res.json();
-                } else {
-                    posts = JSON.parse(localStorage.getItem('mojasiet_local_posts') || '[]');
+                    const data = await res.json();
+                    if (data) {
+                        posts = Array.isArray(data) ? data : Object.values(data);
+                    } else {
+                        posts = [];
+                    }
                 }
             } catch (err) {
-                console.warn("Chyba cloudu, načítavam lokálne:", err);
-                posts = JSON.parse(localStorage.getItem('mojasiet_local_posts') || '[]');
+                console.error("Chyba siete:", err);
+                showSnackbar("Nepodarilo sa pripojiť k online databáze.");
             }
 
             renderPosts();
         }
 
+        /* 2. ZVEREJNENIE PRÍSPEVKU DO CLOUDU (PRE VŠETKY ZARIADENIA) */
         async function submitNewPost() {
             if (!currentUser) return openAuthModal();
 
@@ -202,7 +214,7 @@
 
             const btn = document.getElementById('submitPostBtn');
             btn.disabled = true;
-            btn.innerText = "Zverejňujem...";
+            btn.innerHTML = `<div class="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div><span>Ukladám online...</span>`;
 
             const newPost = {
                 id: 'post_' + Date.now(),
@@ -215,28 +227,50 @@
             const updatedPosts = [newPost, ...posts];
 
             try {
-                // Uloženie do verejného cloudu
-                await fetch(CLOUD_API, {
-                    method: 'POST',
+                // PUT prepíše a uloží zoznam príspevkov online do cloudu
+                const res = await fetch(DB_URL, {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedPosts)
                 });
-                showSnackbar('Príspevok bol zverejnený online!');
+
+                if (!res.ok) {
+                    throw new Error("Pravidlá databázy nepovolili zápis");
+                }
+
+                posts = updatedPosts;
+                document.getElementById('postContentInput').value = '';
+                document.getElementById('postImageUrlInput').value = '';
+                renderPosts();
+                showSnackbar('Príspevok je verejný na všetkých zariadeniach!');
+
             } catch (err) {
-                showSnackbar('Uložené lokálne');
+                console.error(err);
+                showSnackbar('Chyba: Uistite sa, že máte vo Firebase v sekcii Rules nastavené .write: true');
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `<span class="material-symbols-outlined text-lg">send</span><span>Zverejniť príspevok</span>`;
             }
-
-            posts = updatedPosts;
-            localStorage.setItem('mojasiet_local_posts', JSON.stringify(posts));
-
-            document.getElementById('postContentInput').value = '';
-            document.getElementById('postImageUrlInput').value = '';
-            renderPosts();
-
-            btn.disabled = false;
-            btn.innerHTML = `<span class="material-symbols-outlined text-lg">send</span><span>Zverejniť príspevok</span>`;
         }
 
+        /* 3. VYMAZANIE PRÍSPEVKU */
+        window.deletePost = async (postId) => {
+            const updatedPosts = posts.filter(p => p.id !== postId);
+            try {
+                await fetch(DB_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(updatedPosts)
+                });
+                posts = updatedPosts;
+                renderPosts();
+                showSnackbar('Príspevok bol odstránený zo siete');
+            } catch(e) {
+                showSnackbar('Chyba pri mazaní');
+            }
+        };
+
+        /* 4. VYKRESLENIE PRÍSPEVKOV */
         function renderPosts() {
             document.getElementById('loadingIndicator').classList.add('hidden');
             const list = document.getElementById('postsList');
@@ -251,18 +285,28 @@
 
             posts.forEach(post => {
                 const dateStr = new Date(post.createdAt || Date.now()).toLocaleDateString('sk-SK', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
-                const imgHtml = post.imageUrl ? `<img src="${post.imageUrl}" class="mt-3 rounded-2xl max-h-80 w-full object-cover border border-md-outlineVariant/30">` : '';
+                const imgHtml = post.imageUrl ? `<img src="${post.imageUrl}" class="mt-3 rounded-2xl max-h-80 w-full object-cover border border-md-outlineVariant/30" onerror="this.style.display='none'">` : '';
+                const isAuthor = currentUser && currentUser === post.authorName;
+
+                const deleteBtn = isAuthor ? `
+                    <button onclick="window.deletePost('${post.id}')" class="text-md-onSurfaceVariant hover:text-md-error p-1.5 rounded-full hover:bg-md-errorContainer/30 transition-colors" title="Vymazať">
+                        <span class="material-symbols-outlined text-sm">delete</span>
+                    </button>
+                ` : '';
 
                 list.innerHTML += `
                     <article class="bg-md-surface p-5 rounded-3xl shadow-sm border border-md-outlineVariant/30">
-                        <div class="flex items-center gap-3 mb-2">
-                            <div class="w-10 h-10 rounded-2xl bg-md-primaryContainer text-md-onPrimaryContainer font-bold flex items-center justify-center">
-                                ${post.authorName ? post.authorName.substring(0, 2).toUpperCase() : 'U'}
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 rounded-2xl bg-md-primaryContainer text-md-onPrimaryContainer font-bold flex items-center justify-center">
+                                    ${post.authorName ? post.authorName.substring(0, 2).toUpperCase() : 'U'}
+                                </div>
+                                <div>
+                                    <h4 class="font-bold text-sm leading-tight">${post.authorName || 'Používateľ'}</h4>
+                                    <span class="text-xs text-md-onSurfaceVariant">${dateStr}</span>
+                                </div>
                             </div>
-                            <div>
-                                <h4 class="font-bold text-sm leading-tight">${post.authorName || 'Používateľ'}</h4>
-                                <span class="text-xs text-md-onSurfaceVariant">${dateStr}</span>
-                            </div>
+                            ${deleteBtn}
                         </div>
                         <p class="text-sm mt-2 whitespace-pre-wrap leading-relaxed">${post.content || ''}</p>
                         ${imgHtml}
@@ -271,6 +315,7 @@
             });
         }
 
+        /* PRIHLÁSENIE S 5-MIESTNYM PINOM */
         function handleAuth(e) {
             e.preventDefault();
             const name = document.getElementById('authName').value.trim();
@@ -282,6 +327,7 @@
 
             currentUser = name;
             localStorage.setItem('mojasiet_user', currentUser);
+            localStorage.setItem('mojasiet_pin', pin);
             updateUserUI();
             closeAuthModal();
             showSnackbar(`Vitajte, ${currentUser}!`);
@@ -290,6 +336,7 @@
         function logout() {
             currentUser = "";
             localStorage.removeItem('mojasiet_user');
+            localStorage.removeItem('mojasiet_pin');
             updateUserUI();
             showSnackbar('Boli ste odhlásení');
         }
@@ -319,9 +366,11 @@
             setTimeout(() => sb.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3500);
         }
 
+        // Automatické načítanie a sync každých 10 sekúnd
         document.addEventListener('DOMContentLoaded', () => {
             updateUserUI();
             loadPosts();
+            setInterval(loadPosts, 10000); // Automaticky skontroluje nové príspevky od iných ľudí
         });
     </script>
 </body>
