@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MojaSieť - Live Cloud & Čet</title>
+    <title>MojaSieť - Live Cloud & Admin Panel</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -61,13 +61,19 @@
                 <div>
                     <h1 class="text-xl font-bold tracking-tight text-md-onSurface leading-none">MojaSieť</h1>
                     <span id="dbStatus" class="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 mt-0.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Globálny Cloud & Čet
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Globálny Cloud & Admin
                     </span>
                 </div>
             </div>
             
             <div class="flex items-center gap-2">
-                <!-- Tlačidlo na otvorenie četu v hlavičke -->
+                <!-- Tlačidlo Admin Panel -->
+                <button onclick="openAdminModal()" class="px-3 py-1.5 rounded-full bg-amber-100 text-amber-900 font-bold text-xs flex items-center gap-1 shadow-sm hover:bg-amber-200 transition-all">
+                    <span class="material-symbols-outlined text-base">admin_panel_settings</span>
+                    <span>Admin</span>
+                </button>
+
+                <!-- Tlačidlo Čet -->
                 <button onclick="toggleChatModal()" class="px-3 py-1.5 rounded-full bg-md-primaryContainer text-md-onPrimaryContainer font-bold text-xs flex items-center gap-1.5 shadow-sm hover:scale-105 transition-all">
                     <span class="material-symbols-outlined text-base">chat</span>
                     <span>Čet</span>
@@ -102,7 +108,7 @@
         <div id="welcomeBanner" class="bg-gradient-to-r from-md-primaryContainer to-md-surfaceContainerHigh text-md-onPrimaryContainer rounded-3xl p-6 sm:p-8 mb-8 shadow-sm border border-white/60 flex flex-col sm:flex-row items-center justify-between gap-6">
             <div>
                 <h2 class="text-2xl font-bold tracking-tight mb-1">Vitajte na MojaSieť</h2>
-                <p class="text-sm text-md-onSurfaceVariant max-w-md">Overte si svoj účet s modrou fajkou, pridávajte príspevky a četujte naživo s ostatnými!</p>
+                <p class="text-sm text-md-onSurfaceVariant max-w-md">Overte si účet s modrou fajkou, četujte naživo a spravujte obsah v sieti.</p>
             </div>
             <button onclick="openAuthModal()" class="bg-md-primary text-white px-7 py-3 rounded-full font-semibold shadow-md whitespace-nowrap">
                 Prihlásiť sa
@@ -129,7 +135,10 @@
 
         <!-- Nástenka -->
         <div class="flex justify-between items-center px-2 mb-3">
-            <h2 class="text-lg font-bold">Verejné príspevky</h2>
+            <div class="flex items-center gap-2">
+                <h2 class="text-lg font-bold">Verejné príspevky</h2>
+                <span id="adminModeTag" class="hidden text-xs bg-amber-500 text-white px-2 py-0.5 rounded-full font-bold">Admin Režim</span>
+            </div>
             <button onclick="loadPosts()" class="p-2 text-md-onSurfaceVariant hover:bg-md-surfaceContainerHigh rounded-full transition-colors" title="Obnoviť">
                 <span class="material-symbols-outlined">refresh</span>
             </button>
@@ -157,10 +166,9 @@
         </button>
     </div>
 
-    <!-- Live Chat Modal / Okno -->
+    <!-- Live Chat Modal -->
     <div id="chatModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
         <div class="bg-md-surface w-full max-w-lg h-[600px] max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-white/60">
-            <!-- Chat Header -->
             <div class="p-4 bg-md-surfaceContainerHigh border-b border-md-outlineVariant/30 flex items-center justify-between">
                 <div class="flex items-center gap-2.5">
                     <div class="w-9 h-9 rounded-xl bg-md-primary flex items-center justify-center text-white">
@@ -178,17 +186,79 @@
                 </button>
             </div>
 
-            <!-- Chat Messages Body -->
-            <div id="chatMessagesList" class="flex-grow overflow-y-auto p-4 space-y-3 bg-[#FAF8FD]">
-                <!-- Správy sa načítavajú sem -->
-            </div>
+            <div id="chatMessagesList" class="flex-grow overflow-y-auto p-4 space-y-3 bg-[#FAF8FD]"></div>
 
-            <!-- Chat Input Footer -->
             <div class="p-3 bg-md-surface border-t border-md-outlineVariant/30 flex items-center gap-2">
                 <input type="text" id="chatInput" placeholder="Napíšte správu do četu..." class="flex-grow px-4 py-2.5 rounded-full border border-md-outlineVariant/40 bg-white text-sm outline-none focus:border-md-primary" onkeypress="if(event.key==='Enter') sendChatMessage()">
                 <button onclick="sendChatMessage()" class="bg-md-primary text-white p-2.5 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 shadow-md">
                     <span class="material-symbols-outlined text-xl">send</span>
                 </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="adminModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+        <div class="bg-md-surface w-full max-w-lg rounded-3xl p-6 sm:p-8 shadow-2xl border border-amber-200">
+            <div class="flex justify-between items-center mb-5">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-10 h-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-md">
+                        <span class="material-symbols-outlined text-2xl">shield_person</span>
+                    </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-md-onSurface">Administrátorský Panel</h2>
+                        <p class="text-xs text-md-onSurfaceVariant">Banovanie účtov a ochrana autorských práv</p>
+                    </div>
+                </div>
+                <button onclick="closeAdminModal()" class="p-1 text-md-onSurfaceVariant hover:bg-black/5 rounded-full">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Admin PIN Login ak nie je prihlásený ako admin -->
+            <div id="adminAuthSection" class="space-y-3">
+                <p class="text-xs text-md-onSurfaceVariant">Zadajte 5-miestny Admin PIN (predvolený: <strong class="text-amber-700">99999</strong>):</p>
+                <div class="md-text-field mb-2">
+                    <input type="password" id="adminPinInput" maxlength="5" class="md-input font-mono tracking-widest text-center text-lg" placeholder=" ">
+                    <label class="md-label">Admin PIN kód</label>
+                </div>
+                <button onclick="verifyAdminPin()" class="w-full bg-amber-600 text-white py-3 rounded-full font-bold shadow-md hover:bg-amber-700 transition-all">
+                    Odomknúť Admin Panel
+                </button>
+            </div>
+
+            <!-- Admin Ovládací panel (zobrazí sa po overení PINu) -->
+            <div id="adminControlsSection" class="hidden space-y-5">
+                <!-- Banovanie používateľa -->
+                <div class="bg-red-50 p-4 rounded-2xl border border-red-200 space-y-2">
+                    <h4 class="text-sm font-bold text-red-900 flex items-center gap-1.5">
+                        <span class="material-symbols-outlined text-red-600 text-lg">block</span>
+                        Zablokovať (Banovať) Používateľa
+                    </h4>
+                    <div class="flex gap-2">
+                        <input type="text" id="banUserInput" placeholder="Presné meno používateľa..." class="flex-grow px-3 py-2 rounded-xl border border-red-300 text-xs outline-none bg-white">
+                        <button onclick="banUser()" class="bg-red-600 text-white px-4 py-2 rounded-xl text-xs font-bold hover:bg-red-700 shadow-sm whitespace-nowrap">
+                            Zabanovať
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Zoznam zabanovaných používateľov -->
+                <div>
+                    <h4 class="text-xs font-bold text-md-onSurfaceVariant mb-2 uppercase tracking-wider">Zoznam zablokovaných účtov:</h4>
+                    <div id="bannedUsersList" class="max-h-36 overflow-y-auto space-y-1.5 bg-md-surfaceContainerLow p-2.5 rounded-2xl border border-md-outlineVariant/30 text-xs">
+                        <!-- Zoznam zabanovaných -->
+                    </div>
+                </div>
+
+                <div class="pt-3 border-t border-md-surfaceContainerHigh flex justify-between items-center">
+                    <span class="text-xs text-emerald-700 font-bold flex items-center gap-1">
+                        <span class="w-2 h-2 rounded-full bg-emerald-500"></span> Admin režim aktívny
+                    </span>
+                    <button onclick="exitAdminMode()" class="text-xs text-red-600 font-bold hover:underline">
+                        Ukončiť Admin režim
+                    </button>
+                </div>
             </div>
         </div>
     </div>
@@ -223,26 +293,31 @@
     </div>
 
     <script>
-        // GLOBÁLNE ENDPOINTY PRE TVOJ FIREBASE
+        // GLOBÁLNE ENDPOINTY PRE FIREBASE
         const DB_POSTS_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/posts.json";
         const DB_CHAT_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/chat.json";
         const DB_USERS_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/users.json";
+        const DB_BANNED_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/banned.json";
+
+        const ADMIN_SECRET_PIN = "99999"; // Master Admin PIN
 
         let currentUser = localStorage.getItem('mojasiet_user') || "";
         let isVerified = localStorage.getItem('mojasiet_verified') === "true";
+        let isAdminLoggedIn = localStorage.getItem('mojasiet_is_admin') === "true";
         let posts = [];
         let chatMessages = [];
         let usersData = {};
+        let bannedUsers = [];
 
-        /* 1. NAČÍTANIE PRÍSPEVKOV */
+        /* 1. NAČÍTANIE PRÍSPEVKOV A DÁT */
         async function loadPosts() {
             document.getElementById('loadingIndicator').classList.remove('hidden');
             document.getElementById('emptyState').classList.add('hidden');
             document.getElementById('postsList').innerHTML = '';
 
             try {
-                // Načítame aj používateľov pre overovacie fajky a 24h aktivitu
                 await loadUsersData();
+                await loadBannedUsers();
 
                 const res = await fetch(DB_POSTS_URL);
                 if (res.ok) {
@@ -264,6 +339,11 @@
         async function submitNewPost() {
             if (!currentUser) return openAuthModal();
 
+            // Kontrola či je používateľ zabanovaný
+            if (bannedUsers.includes(currentUser)) {
+                return showSnackbar('Váš účet bol zablokovaný administrátorom!', 'error');
+            }
+
             const text = document.getElementById('postContentInput').value.trim();
             const img = document.getElementById('postImageUrlInput').value.trim();
 
@@ -275,7 +355,6 @@
             btn.disabled = true;
             btn.innerHTML = `<div class="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div><span>Ukladám online...</span>`;
 
-            // Aktualizujeme aktivitu používateľa (24h)
             await updateUserActivity(currentUser);
 
             const newPost = {
@@ -284,7 +363,8 @@
                 imageUrl: img,
                 createdAt: Date.now(),
                 authorName: currentUser,
-                isVerified: isVerified
+                isVerified: isVerified,
+                copyrightClaim: false
             };
 
             const updatedPosts = [newPost, ...posts];
@@ -312,7 +392,36 @@
             }
         }
 
-        /* 3. VYMAZANIE PRÍSPEVKU */
+        /* 3. COPYRIGHT CLAIM PRE PRÍSPEVOK (ADMIN FUNKCIA) */
+        window.toggleCopyrightClaim = async (postId) => {
+            if (!isAdminLoggedIn) {
+                return openAdminModal();
+            }
+
+            const post = posts.find(p => p.id === postId);
+            if (!post) return;
+
+            post.copyrightClaim = !post.copyrightClaim;
+
+            try {
+                await fetch(DB_POSTS_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(posts)
+                });
+
+                renderPosts();
+                if (post.copyrightClaim) {
+                    showSnackbar('Copyright Claim bol úspešne pridaný na príspevok!');
+                } else {
+                    showSnackbar('Copyright Claim bol odstránený.');
+                }
+            } catch(e) {
+                showSnackbar('Chyba pri ukladaní Copyright Claimu');
+            }
+        };
+
+        /* 4. VYMAZANIE PRÍSPEVKU */
         window.deletePost = async (postId) => {
             const updatedPosts = posts.filter(p => p.id !== postId);
             try {
@@ -329,7 +438,7 @@
             }
         };
 
-        /* 4. VYKRESLENIE PRÍSPEVKOV */
+        /* 5. VYKRESLENIE PRÍSPEVKOV */
         function renderPosts() {
             document.getElementById('loadingIndicator').classList.add('hidden');
             const list = document.getElementById('postsList');
@@ -347,9 +456,13 @@
                 const imgHtml = post.imageUrl ? `<img src="${post.imageUrl}" class="mt-3 rounded-2xl max-h-80 w-full object-cover border border-md-outlineVariant/30" onerror="this.style.display='none'">` : '';
                 const isAuthor = currentUser && currentUser === post.authorName;
 
-                // Overovacia fajka (či je overený v databáze alebo v objekte príspevku)
+                // Overovacia fajka
                 const authorVerified = (usersData[post.authorName] && usersData[post.authorName].verified) || post.isVerified;
                 const verifiedIcon = authorVerified ? `<span class="material-symbols-outlined text-blue-500 text-[18px] inline-block ml-1" title="Overený používateľ">verified</span>` : '';
+
+                // Kontrola či je autor zabanovaný
+                const isAuthorBanned = bannedUsers.includes(post.authorName);
+                const bannedBadge = isAuthorBanned ? `<span class="bg-red-100 text-red-700 text-[10px] font-bold px-1.5 py-0.5 rounded-full ml-1.5 flex items-center gap-0.5">🚫 Zablokovaný</span>` : '';
 
                 // 24-hodinový status aktivity
                 const userActiveTime = (usersData[post.authorName] && usersData[post.authorName].lastActive) || post.createdAt || 0;
@@ -358,30 +471,58 @@
                     `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 ml-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Aktívny</span>` : 
                     `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-gray-400 ml-2"><span class="w-2 h-2 rounded-full bg-gray-300"></span> Neaktívny</span>`;
 
-                const deleteBtn = isAuthor ? `
+                // Copyright Claim Banner
+                const copyrightBanner = post.copyrightClaim ? `
+                    <div class="mt-3 p-3 bg-red-50 border-l-4 border-red-600 rounded-2xl flex items-center justify-between gap-2 shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="material-symbols-outlined text-red-600 text-xl">copyright</span>
+                            <div>
+                                <h5 class="text-xs font-bold text-red-900 leading-tight">Copyright Claim (Autorské práva)</h5>
+                                <p class="text-[11px] text-red-700">Tento príspevok bol nahlásený alebo označený pre porušenie autorských práv.</p>
+                            </div>
+                        </div>
+                    </div>
+                ` : '';
+
+                // Admin Copyright tlačidlo
+                const adminCopyrightBtn = isAdminLoggedIn ? `
+                    <button onclick="window.toggleCopyrightClaim('${post.id}')" class="text-xs ${post.copyrightClaim ? 'bg-red-600 text-white' : 'bg-amber-100 text-amber-900'} px-2.5 py-1 rounded-full font-bold flex items-center gap-1 hover:opacity-90 transition-all shadow-sm">
+                        <span class="material-symbols-outlined text-sm">copyright</span>
+                        <span>${post.copyrightClaim ? 'Zrušiť Claim' : 'Copyright Claim'}</span>
+                    </button>
+                ` : '';
+
+                const deleteBtn = (isAuthor || isAdminLoggedIn) ? `
                     <button onclick="window.deletePost('${post.id}')" class="text-md-onSurfaceVariant hover:text-md-error p-1.5 rounded-full hover:bg-md-errorContainer/30 transition-colors" title="Vymazať">
                         <span class="material-symbols-outlined text-sm">delete</span>
                     </button>
                 ` : '';
 
                 list.innerHTML += `
-                    <article class="bg-md-surface p-5 rounded-3xl shadow-sm border border-md-outlineVariant/30">
+                    <article class="bg-md-surface p-5 rounded-3xl shadow-sm border ${post.copyrightClaim ? 'border-red-300 ring-1 ring-red-200' : 'border-md-outlineVariant/30'}">
                         <div class="flex justify-between items-start mb-2">
                             <div class="flex items-center gap-3">
                                 <div class="w-10 h-10 rounded-2xl bg-md-primaryContainer text-md-onPrimaryContainer font-bold flex items-center justify-center">
                                     ${post.authorName ? post.authorName.substring(0, 2).toUpperCase() : 'U'}
                                 </div>
                                 <div>
-                                    <div class="flex items-center">
+                                    <div class="flex items-center flex-wrap gap-1">
                                         <h4 class="font-bold text-sm leading-tight text-md-onSurface">${post.authorName || 'Používateľ'}</h4>
                                         ${verifiedIcon}
+                                        ${bannedBadge}
                                         ${activeBadge}
                                     </div>
                                     <span class="text-xs text-md-onSurfaceVariant">${dateStr}</span>
                                 </div>
                             </div>
-                            ${deleteBtn}
+                            <div class="flex items-center gap-1">
+                                ${adminCopyrightBtn}
+                                ${deleteBtn}
+                            </div>
                         </div>
+                        
+                        ${copyrightBanner}
+                        
                         <p class="text-sm mt-2 whitespace-pre-wrap leading-relaxed">${post.content || ''}</p>
                         ${imgHtml}
                     </article>
@@ -389,7 +530,139 @@
             });
         }
 
-        /* 5. ČETOVACÍ SYSTÉM (LIVE CHAT) */
+        /* 6. ADMIN PANEL & BANOVANIE ÚČTOV */
+        async function loadBannedUsers() {
+            try {
+                const res = await fetch(DB_BANNED_URL);
+                if (res.ok) {
+                    bannedUsers = (await res.json()) || [];
+                    if (!Array.isArray(bannedUsers)) bannedUsers = Object.values(bannedUsers);
+                }
+            } catch(e) {
+                bannedUsers = [];
+            }
+            renderBannedUsersList();
+        }
+
+        function openAdminModal() {
+            document.getElementById('adminModal').classList.add('active');
+            if (isAdminLoggedIn) {
+                showAdminControls();
+            } else {
+                document.getElementById('adminAuthSection').classList.remove('hidden');
+                document.getElementById('adminControlsSection').classList.add('hidden');
+                document.getElementById('adminPinInput').value = '';
+                document.getElementById('adminPinInput').focus();
+            }
+        }
+
+        function closeAdminModal() {
+            document.getElementById('adminModal').classList.remove('active');
+        }
+
+        function verifyAdminPin() {
+            const pin = document.getElementById('adminPinInput').value.trim();
+            if (pin === ADMIN_SECRET_PIN) {
+                isAdminLoggedIn = true;
+                localStorage.setItem('mojasiet_is_admin', "true");
+                showAdminControls();
+                updateAdminUI();
+                showSnackbar('Admin režim aktivovaný!', 'success');
+            } else {
+                showSnackbar('Nesprávny Admin PIN kód!', 'error');
+            }
+        }
+
+        function showAdminControls() {
+            document.getElementById('adminAuthSection').classList.add('hidden');
+            document.getElementById('adminControlsSection').classList.remove('hidden');
+            renderBannedUsersList();
+        }
+
+        function exitAdminMode() {
+            isAdminLoggedIn = false;
+            localStorage.removeItem('mojasiet_is_admin');
+            updateAdminUI();
+            closeAdminModal();
+            showSnackbar('Admin režim bol ukončený');
+        }
+
+        async function banUser() {
+            const input = document.getElementById('banUserInput');
+            const targetUser = input.value.trim();
+
+            if (!targetUser) return showSnackbar('Zadajte meno používateľa na ban');
+            if (bannedUsers.includes(targetUser)) return showSnackbar('Tento používateľ už je zablokovaný!');
+
+            bannedUsers.push(targetUser);
+
+            try {
+                await fetch(DB_BANNED_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bannedUsers)
+                });
+
+                input.value = '';
+                renderBannedUsersList();
+                renderPosts();
+                showSnackbar(`Používateľ ${targetUser} bol zablokovaný!`, 'success');
+            } catch(e) {
+                showSnackbar('Chyba pri ukladaní banu');
+            }
+        }
+
+        window.unbanUser = async (targetUser) => {
+            bannedUsers = bannedUsers.filter(u => u !== targetUser);
+
+            try {
+                await fetch(DB_BANNED_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(bannedUsers)
+                });
+
+                renderBannedUsersList();
+                renderPosts();
+                showSnackbar(`Používateľ ${targetUser} bol odblokovaný.`);
+            } catch(e) {
+                showSnackbar('Chyba pri odblokovaní');
+            }
+        };
+
+        function renderBannedUsersList() {
+            const list = document.getElementById('bannedUsersList');
+            if (!list) return;
+            list.innerHTML = '';
+
+            if (bannedUsers.length === 0) {
+                list.innerHTML = `<p class="text-gray-400 text-center py-2">Žiadni zablokovaní používatelia.</p>`;
+                return;
+            }
+
+            bannedUsers.forEach(u => {
+                list.innerHTML += `
+                    <div class="flex justify-between items-center bg-white p-2 rounded-xl border border-red-200">
+                        <span class="font-bold text-red-800">${u}</span>
+                        <button onclick="window.unbanUser('${u}')" class="text-xs bg-emerald-100 text-emerald-800 font-bold px-2 py-1 rounded-lg hover:bg-emerald-200">
+                            Odblokovať
+                        </button>
+                    </div>
+                `;
+            });
+        }
+
+        function updateAdminUI() {
+            const tag = document.getElementById('adminModeTag');
+            if (isAdminLoggedIn) {
+                tag.classList.remove('hidden');
+            } else {
+                tag.classList.add('hidden');
+            }
+            renderPosts();
+        }
+
+        /* 7. ČETOVACÍ SYSTÉM (LIVE CHAT) */
         async function loadChatMessages() {
             try {
                 const res = await fetch(DB_CHAT_URL);
@@ -408,6 +681,10 @@
         async function sendChatMessage() {
             if (!currentUser) return openAuthModal();
 
+            if (bannedUsers.includes(currentUser)) {
+                return showSnackbar('Váš účet je zablokovaný administrátorom!', 'error');
+            }
+
             const input = document.getElementById('chatInput');
             const msg = input.value.trim();
             if (!msg) return;
@@ -423,7 +700,7 @@
             };
 
             chatMessages.push(newMsg);
-            if (chatMessages.length > 50) chatMessages = chatMessages.slice(-50); // Udržiavame posledných 50 správ
+            if (chatMessages.length > 50) chatMessages = chatMessages.slice(-50);
 
             input.value = '';
             renderChatMessages();
@@ -451,12 +728,14 @@
                 const timeStr = new Date(m.time || Date.now()).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
                 const senderVerified = (usersData[m.sender] && usersData[m.sender].verified) || m.isVerified;
                 const checkmark = senderVerified ? `<span class="material-symbols-outlined text-blue-500 text-[14px] ml-0.5">verified</span>` : '';
+                const senderBanned = bannedUsers.includes(m.sender);
 
                 list.innerHTML += `
                     <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
                         <div class="flex items-center gap-1 text-[11px] font-bold text-md-onSurfaceVariant mb-0.5 px-1">
                             <span>${m.sender}</span>
                             ${checkmark}
+                            ${senderBanned ? '<span class="text-[9px] bg-red-100 text-red-700 px-1 rounded">🚫 Ban</span>' : ''}
                             <span class="text-[10px] text-gray-400 font-normal ml-1">${timeStr}</span>
                         </div>
                         <div class="max-w-[80%] px-4 py-2 rounded-2xl text-sm shadow-sm ${isMe ? 'bg-md-primary text-white rounded-tr-sm' : 'bg-white text-md-onSurface border border-md-outlineVariant/30 rounded-tl-sm'}">
@@ -478,7 +757,7 @@
             }
         }
 
-        /* 6. OVERENIE ÚČTU (MODRÁ FAJKA) & 24H AKTIVITA */
+        /* 8. OVERENIE ÚČTU (MODRÁ FAJKA) & 24H AKTIVITA */
         async function loadUsersData() {
             try {
                 const res = await fetch(DB_USERS_URL);
@@ -580,16 +859,17 @@
         function openAuthModal() { document.getElementById('authModal').classList.add('active'); }
         function closeAuthModal() { document.getElementById('authModal').classList.remove('active'); }
 
-        function showSnackbar(msg) {
+        function showSnackbar(msg, type = 'default') {
             const sb = document.getElementById('snackbar');
             document.getElementById('snackbarMessage').textContent = msg;
             sb.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
             setTimeout(() => sb.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3500);
         }
 
-        // Automatické načítavanie a live sync každých 7 sekúnd
+        // Live synchronizácia
         document.addEventListener('DOMContentLoaded', () => {
             updateUserUI();
+            updateAdminUI();
             loadPosts();
             setInterval(loadPosts, 7000);
             setInterval(() => {
