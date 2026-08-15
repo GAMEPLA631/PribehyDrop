@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MojaSieť - Live Cloud</title>
+    <title>MojaSieť - Live Cloud & Čet</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -49,7 +49,7 @@
         .modal-overlay.active { opacity: 1; pointer-events: auto; }
     </style>
 </head>
-<body class="flex flex-col min-h-screen antialiased">
+<body class="flex flex-col min-h-screen antialiased pb-20 sm:pb-0">
 
     <!-- Horný panel -->
     <header class="bg-md-surface/90 backdrop-blur-md border-b border-md-outlineVariant/30 sticky top-0 z-30">
@@ -61,21 +61,35 @@
                 <div>
                     <h1 class="text-xl font-bold tracking-tight text-md-onSurface leading-none">MojaSieť</h1>
                     <span id="dbStatus" class="text-[11px] font-semibold text-emerald-600 flex items-center gap-1 mt-0.5">
-                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Globálny Cloud Pripojený
+                        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Globálny Cloud & Čet
                     </span>
                 </div>
             </div>
             
             <div class="flex items-center gap-2">
+                <!-- Tlačidlo na otvorenie četu v hlavičke -->
+                <button onclick="toggleChatModal()" class="px-3 py-1.5 rounded-full bg-md-primaryContainer text-md-onPrimaryContainer font-bold text-xs flex items-center gap-1.5 shadow-sm hover:scale-105 transition-all">
+                    <span class="material-symbols-outlined text-base">chat</span>
+                    <span>Čet</span>
+                </button>
+
                 <div id="authStateContainer">
                     <button id="loginBtn" onclick="openAuthModal()" class="px-5 py-2 rounded-full font-semibold text-sm bg-md-primary text-white shadow-md hover:bg-opacity-95 flex items-center gap-2">
                         <span class="material-symbols-outlined text-lg">login</span>
                         <span>Prihlásiť sa</span>
                     </button>
                     
-                    <div id="userMenuContainer" class="hidden flex items-center gap-2 bg-md-surfaceContainerHigh px-3.5 py-1.5 rounded-full border border-md-outlineVariant/30">
-                        <span id="userNameDisplay" class="text-sm font-bold text-md-onSurface">Používateľ</span>
-                        <button onclick="logout()" class="text-xs text-md-error font-bold hover:underline ml-2">Odhlásiť</button>
+                    <div id="userMenuContainer" class="hidden flex items-center gap-2 bg-md-surfaceContainerHigh px-3 py-1.5 rounded-full border border-md-outlineVariant/30">
+                        <div class="flex items-center gap-1">
+                            <span id="userNameDisplay" class="text-sm font-bold text-md-onSurface">Používateľ</span>
+                            <span id="userVerifiedBadge" class="material-symbols-outlined text-blue-500 text-[18px] hidden" title="Overený účet">verified</span>
+                        </div>
+                        
+                        <button onclick="toggleVerifyAccount()" id="verifyBtn" class="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold hover:bg-blue-200 transition-colors ml-1" title="Získať modrú overovaciu fajku">
+                            Overiť
+                        </button>
+                        
+                        <button onclick="logout()" class="text-xs text-md-error font-bold hover:underline ml-1">Odhlásiť</button>
                     </div>
                 </div>
             </div>
@@ -88,7 +102,7 @@
         <div id="welcomeBanner" class="bg-gradient-to-r from-md-primaryContainer to-md-surfaceContainerHigh text-md-onPrimaryContainer rounded-3xl p-6 sm:p-8 mb-8 shadow-sm border border-white/60 flex flex-col sm:flex-row items-center justify-between gap-6">
             <div>
                 <h2 class="text-2xl font-bold tracking-tight mb-1">Vitajte na MojaSieť</h2>
-                <p class="text-sm text-md-onSurfaceVariant max-w-md">Všetky príspevky sú zosynchronizované online v reálnom čase pre všetky zariadenia.</p>
+                <p class="text-sm text-md-onSurfaceVariant max-w-md">Overte si svoj účet s modrou fajkou, pridávajte príspevky a četujte naživo s ostatnými!</p>
             </div>
             <button onclick="openAuthModal()" class="bg-md-primary text-white px-7 py-3 rounded-full font-semibold shadow-md whitespace-nowrap">
                 Prihlásiť sa
@@ -134,6 +148,51 @@
         </div>
     </main>
 
+    <!-- Plávajúce tlačidlo pre Čet -->
+    <div class="fixed bottom-6 right-6 z-40">
+        <button onclick="toggleChatModal()" class="bg-gradient-to-tr from-md-primary to-md-primaryContainer text-white px-5 py-3.5 rounded-full shadow-2xl flex items-center gap-2.5 hover:scale-105 active:scale-95 transition-all">
+            <span class="material-symbols-outlined text-2xl">chat</span>
+            <span class="font-bold text-sm">Živý Čet</span>
+            <span id="chatActiveDot" class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+        </button>
+    </div>
+
+    <!-- Live Chat Modal / Okno -->
+    <div id="chatModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3 sm:p-4">
+        <div class="bg-md-surface w-full max-w-lg h-[600px] max-h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-white/60">
+            <!-- Chat Header -->
+            <div class="p-4 bg-md-surfaceContainerHigh border-b border-md-outlineVariant/30 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-9 h-9 rounded-xl bg-md-primary flex items-center justify-center text-white">
+                        <span class="material-symbols-outlined text-xl">forum</span>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-md-onSurface leading-tight">Verejný Čet</h3>
+                        <span class="text-[11px] text-emerald-600 font-semibold flex items-center gap-1">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span> 24h Aktívny Status
+                        </span>
+                    </div>
+                </div>
+                <button onclick="toggleChatModal()" class="p-2 text-md-onSurfaceVariant hover:bg-black/5 rounded-full">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <!-- Chat Messages Body -->
+            <div id="chatMessagesList" class="flex-grow overflow-y-auto p-4 space-y-3 bg-[#FAF8FD]">
+                <!-- Správy sa načítavajú sem -->
+            </div>
+
+            <!-- Chat Input Footer -->
+            <div class="p-3 bg-md-surface border-t border-md-outlineVariant/30 flex items-center gap-2">
+                <input type="text" id="chatInput" placeholder="Napíšte správu do četu..." class="flex-grow px-4 py-2.5 rounded-full border border-md-outlineVariant/40 bg-white text-sm outline-none focus:border-md-primary" onkeypress="if(event.key==='Enter') sendChatMessage()">
+                <button onclick="sendChatMessage()" class="bg-md-primary text-white p-2.5 rounded-full flex items-center justify-center hover:scale-105 active:scale-95 shadow-md">
+                    <span class="material-symbols-outlined text-xl">send</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Auth Modal (5-miestny PIN) -->
     <div id="authModal" class="modal-overlay fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
         <div class="bg-md-surface w-full max-w-md rounded-3xl p-6 sm:p-8 shadow-xl">
@@ -164,27 +223,28 @@
     </div>
 
     <script>
-        // TVOJ VLASTNÝ GLOBÁLNY CLOUD DATABASE ENDPOINT
-        const DB_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/posts.json";
+        // GLOBÁLNE ENDPOINTY PRE TVOJ FIREBASE
+        const DB_POSTS_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/posts.json";
+        const DB_CHAT_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/chat.json";
+        const DB_USERS_URL = "https://mojetube-a3925-default-rtdb.firebaseio.com/users.json";
 
         let currentUser = localStorage.getItem('mojasiet_user') || "";
+        let isVerified = localStorage.getItem('mojasiet_verified') === "true";
         let posts = [];
+        let chatMessages = [];
+        let usersData = {};
 
-        /* 1. NAČÍTANIE PRÍSPEVKOV Z ONLINE DATABÁZY */
+        /* 1. NAČÍTANIE PRÍSPEVKOV */
         async function loadPosts() {
             document.getElementById('loadingIndicator').classList.remove('hidden');
             document.getElementById('emptyState').classList.add('hidden');
             document.getElementById('postsList').innerHTML = '';
 
             try {
-                const res = await fetch(DB_URL);
-                
-                if (res.status === 401 || res.status === 403) {
-                    showSnackbar("Chyba: Nastavte v Rules vo Firebase .read: true a .write: true");
-                    renderPosts();
-                    return;
-                }
+                // Načítame aj používateľov pre overovacie fajky a 24h aktivitu
+                await loadUsersData();
 
+                const res = await fetch(DB_POSTS_URL);
                 if (res.ok) {
                     const data = await res.json();
                     if (data) {
@@ -195,13 +255,12 @@
                 }
             } catch (err) {
                 console.error("Chyba siete:", err);
-                showSnackbar("Nepodarilo sa pripojiť k online databáze.");
             }
 
             renderPosts();
         }
 
-        /* 2. ZVEREJNENIE PRÍSPEVKU DO CLOUDU (PRE VŠETKY ZARIADENIA) */
+        /* 2. ZVEREJNENIE PRÍSPEVKU */
         async function submitNewPost() {
             if (!currentUser) return openAuthModal();
 
@@ -216,37 +275,37 @@
             btn.disabled = true;
             btn.innerHTML = `<div class="animate-spin h-4 w-4 border-2 border-white/30 border-t-white rounded-full"></div><span>Ukladám online...</span>`;
 
+            // Aktualizujeme aktivitu používateľa (24h)
+            await updateUserActivity(currentUser);
+
             const newPost = {
                 id: 'post_' + Date.now(),
                 content: text,
                 imageUrl: img,
                 createdAt: Date.now(),
-                authorName: currentUser
+                authorName: currentUser,
+                isVerified: isVerified
             };
 
             const updatedPosts = [newPost, ...posts];
 
             try {
-                // PUT prepíše a uloží zoznam príspevkov online do cloudu
-                const res = await fetch(DB_URL, {
+                const res = await fetch(DB_POSTS_URL, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedPosts)
                 });
 
-                if (!res.ok) {
-                    throw new Error("Pravidlá databázy nepovolili zápis");
-                }
+                if (!res.ok) throw new Error("Chyba zápisu");
 
                 posts = updatedPosts;
                 document.getElementById('postContentInput').value = '';
                 document.getElementById('postImageUrlInput').value = '';
                 renderPosts();
-                showSnackbar('Príspevok je verejný na všetkých zariadeniach!');
+                showSnackbar('Príspevok je zverejnený!');
 
             } catch (err) {
-                console.error(err);
-                showSnackbar('Chyba: Uistite sa, že máte vo Firebase v sekcii Rules nastavené .write: true');
+                showSnackbar('Chyba: Skontrolujte Firebase Rules (.write: true)');
             } finally {
                 btn.disabled = false;
                 btn.innerHTML = `<span class="material-symbols-outlined text-lg">send</span><span>Zverejniť príspevok</span>`;
@@ -257,14 +316,14 @@
         window.deletePost = async (postId) => {
             const updatedPosts = posts.filter(p => p.id !== postId);
             try {
-                await fetch(DB_URL, {
+                await fetch(DB_POSTS_URL, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updatedPosts)
                 });
                 posts = updatedPosts;
                 renderPosts();
-                showSnackbar('Príspevok bol odstránený zo siete');
+                showSnackbar('Príspevok bol odstránený');
             } catch(e) {
                 showSnackbar('Chyba pri mazaní');
             }
@@ -288,6 +347,17 @@
                 const imgHtml = post.imageUrl ? `<img src="${post.imageUrl}" class="mt-3 rounded-2xl max-h-80 w-full object-cover border border-md-outlineVariant/30" onerror="this.style.display='none'">` : '';
                 const isAuthor = currentUser && currentUser === post.authorName;
 
+                // Overovacia fajka (či je overený v databáze alebo v objekte príspevku)
+                const authorVerified = (usersData[post.authorName] && usersData[post.authorName].verified) || post.isVerified;
+                const verifiedIcon = authorVerified ? `<span class="material-symbols-outlined text-blue-500 text-[18px] inline-block ml-1" title="Overený používateľ">verified</span>` : '';
+
+                // 24-hodinový status aktivity
+                const userActiveTime = (usersData[post.authorName] && usersData[post.authorName].lastActive) || post.createdAt || 0;
+                const isUser24hActive = (Date.now() - userActiveTime) < (24 * 60 * 60 * 1000);
+                const activeBadge = isUser24hActive ? 
+                    `<span class="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 ml-2"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Aktívny</span>` : 
+                    `<span class="inline-flex items-center gap-1 text-[11px] font-medium text-gray-400 ml-2"><span class="w-2 h-2 rounded-full bg-gray-300"></span> Neaktívny</span>`;
+
                 const deleteBtn = isAuthor ? `
                     <button onclick="window.deletePost('${post.id}')" class="text-md-onSurfaceVariant hover:text-md-error p-1.5 rounded-full hover:bg-md-errorContainer/30 transition-colors" title="Vymazať">
                         <span class="material-symbols-outlined text-sm">delete</span>
@@ -302,7 +372,11 @@
                                     ${post.authorName ? post.authorName.substring(0, 2).toUpperCase() : 'U'}
                                 </div>
                                 <div>
-                                    <h4 class="font-bold text-sm leading-tight">${post.authorName || 'Používateľ'}</h4>
+                                    <div class="flex items-center">
+                                        <h4 class="font-bold text-sm leading-tight text-md-onSurface">${post.authorName || 'Používateľ'}</h4>
+                                        ${verifiedIcon}
+                                        ${activeBadge}
+                                    </div>
                                     <span class="text-xs text-md-onSurfaceVariant">${dateStr}</span>
                                 </div>
                             </div>
@@ -315,8 +389,139 @@
             });
         }
 
+        /* 5. ČETOVACÍ SYSTÉM (LIVE CHAT) */
+        async function loadChatMessages() {
+            try {
+                const res = await fetch(DB_CHAT_URL);
+                if (res.ok) {
+                    const data = await res.json();
+                    if (data) {
+                        chatMessages = Array.isArray(data) ? data : Object.values(data);
+                    } else {
+                        chatMessages = [];
+                    }
+                    renderChatMessages();
+                }
+            } catch(e) {}
+        }
+
+        async function sendChatMessage() {
+            if (!currentUser) return openAuthModal();
+
+            const input = document.getElementById('chatInput');
+            const msg = input.value.trim();
+            if (!msg) return;
+
+            await updateUserActivity(currentUser);
+
+            const newMsg = {
+                id: 'msg_' + Date.now(),
+                sender: currentUser,
+                text: msg,
+                time: Date.now(),
+                isVerified: isVerified
+            };
+
+            chatMessages.push(newMsg);
+            if (chatMessages.length > 50) chatMessages = chatMessages.slice(-50); // Udržiavame posledných 50 správ
+
+            input.value = '';
+            renderChatMessages();
+
+            try {
+                await fetch(DB_CHAT_URL, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(chatMessages)
+                });
+            } catch(e) {}
+        }
+
+        function renderChatMessages() {
+            const list = document.getElementById('chatMessagesList');
+            list.innerHTML = '';
+
+            if (chatMessages.length === 0) {
+                list.innerHTML = `<p class="text-center text-xs text-gray-400 py-10">Zatiaľ žiadne správy v čete. Napíšte niečo!</p>`;
+                return;
+            }
+
+            chatMessages.forEach(m => {
+                const isMe = m.sender === currentUser;
+                const timeStr = new Date(m.time || Date.now()).toLocaleTimeString('sk-SK', { hour: '2-digit', minute: '2-digit' });
+                const senderVerified = (usersData[m.sender] && usersData[m.sender].verified) || m.isVerified;
+                const checkmark = senderVerified ? `<span class="material-symbols-outlined text-blue-500 text-[14px] ml-0.5">verified</span>` : '';
+
+                list.innerHTML += `
+                    <div class="flex flex-col ${isMe ? 'items-end' : 'items-start'}">
+                        <div class="flex items-center gap-1 text-[11px] font-bold text-md-onSurfaceVariant mb-0.5 px-1">
+                            <span>${m.sender}</span>
+                            ${checkmark}
+                            <span class="text-[10px] text-gray-400 font-normal ml-1">${timeStr}</span>
+                        </div>
+                        <div class="max-w-[80%] px-4 py-2 rounded-2xl text-sm shadow-sm ${isMe ? 'bg-md-primary text-white rounded-tr-sm' : 'bg-white text-md-onSurface border border-md-outlineVariant/30 rounded-tl-sm'}">
+                            ${m.text}
+                        </div>
+                    </div>
+                `;
+            });
+
+            list.scrollTop = list.scrollHeight;
+        }
+
+        function toggleChatModal() {
+            const modal = document.getElementById('chatModal');
+            modal.classList.toggle('active');
+            if (modal.classList.contains('active')) {
+                loadChatMessages();
+                document.getElementById('chatInput').focus();
+            }
+        }
+
+        /* 6. OVERENIE ÚČTU (MODRÁ FAJKA) & 24H AKTIVITA */
+        async function loadUsersData() {
+            try {
+                const res = await fetch(DB_USERS_URL);
+                if (res.ok) {
+                    usersData = (await res.json()) || {};
+                }
+            } catch(e) {}
+        }
+
+        async function updateUserActivity(username) {
+            if (!username) return;
+            if (!usersData[username]) usersData[username] = {};
+            usersData[username].lastActive = Date.now();
+            usersData[username].verified = isVerified;
+
+            try {
+                await fetch(`https://mojetube-a3925-default-rtdb.firebaseio.com/users/${encodeURIComponent(username)}.json`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(usersData[username])
+                });
+            } catch(e) {}
+        }
+
+        async function toggleVerifyAccount() {
+            if (!currentUser) return openAuthModal();
+
+            isVerified = !isVerified;
+            localStorage.setItem('mojasiet_verified', isVerified ? "true" : "false");
+
+            await updateUserActivity(currentUser);
+            updateUserUI();
+            loadPosts();
+
+            if (isVerified) {
+                showSnackbar('Gratulujeme! Váš účet získal modrú overovaciu fajku!', 'success');
+            } else {
+                showSnackbar('Overenie účtu bolo vypnuté.');
+            }
+        }
+
         /* PRIHLÁSENIE S 5-MIESTNYM PINOM */
-        function handleAuth(e) {
+        async function handleAuth(e) {
             e.preventDefault();
             const name = document.getElementById('authName').value.trim();
             const pin = document.getElementById('authPin').value.trim();
@@ -328,9 +533,12 @@
             currentUser = name;
             localStorage.setItem('mojasiet_user', currentUser);
             localStorage.setItem('mojasiet_pin', pin);
+
+            await updateUserActivity(currentUser);
             updateUserUI();
             closeAuthModal();
             showSnackbar(`Vitajte, ${currentUser}!`);
+            loadPosts();
         }
 
         function logout() {
@@ -342,12 +550,25 @@
         }
 
         function updateUserUI() {
+            const verifyBtn = document.getElementById('verifyBtn');
+            const verifiedBadge = document.getElementById('userVerifiedBadge');
+
             if (currentUser) {
                 document.getElementById('loginBtn').classList.add('hidden');
                 document.getElementById('userMenuContainer').classList.remove('hidden');
                 document.getElementById('welcomeBanner').classList.add('hidden');
                 document.getElementById('createPostCard').classList.remove('hidden');
                 document.getElementById('userNameDisplay').textContent = currentUser;
+
+                if (isVerified) {
+                    verifiedBadge.classList.remove('hidden');
+                    verifyBtn.textContent = 'Overený ✓';
+                    verifyBtn.className = 'text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-bold ml-1';
+                } else {
+                    verifiedBadge.classList.add('hidden');
+                    verifyBtn.textContent = 'Overiť';
+                    verifyBtn.className = 'text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-bold hover:bg-blue-200 transition-colors ml-1';
+                }
             } else {
                 document.getElementById('loginBtn').classList.remove('hidden');
                 document.getElementById('userMenuContainer').classList.add('hidden');
@@ -366,11 +587,16 @@
             setTimeout(() => sb.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 3500);
         }
 
-        // Automatické načítanie a sync každých 10 sekúnd
+        // Automatické načítavanie a live sync každých 7 sekúnd
         document.addEventListener('DOMContentLoaded', () => {
             updateUserUI();
             loadPosts();
-            setInterval(loadPosts, 10000); // Automaticky skontroluje nové príspevky od iných ľudí
+            setInterval(loadPosts, 7000);
+            setInterval(() => {
+                if (document.getElementById('chatModal').classList.contains('active')) {
+                    loadChatMessages();
+                }
+            }, 3000);
         });
     </script>
 </body>
